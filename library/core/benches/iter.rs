@@ -419,6 +419,21 @@ fn bench_copied_chunks(b: &mut Bencher) {
     })
 }
 
+/// Exercises the iter::Copied specialization for slice::Iter
+#[bench]
+fn bench_copied_array_chunk_fold(b: &mut Bencher) {
+    let v = vec![1u8; 1024];
+
+    b.iter(|| {
+        let iter = black_box(&v).iter().copied().array_chunks::<{ mem::size_of::<u64>() }>();
+        // This uses a while-let loop to side-step the TRA specialization in ArrayChunks
+        iter.fold(Wrapping(0), |acc, chunk| {
+            let d = u64::from_ne_bytes(chunk);
+            acc + Wrapping(d.rotate_left(7).wrapping_add(1))
+        })
+    })
+}
+
 /// Exercises the TrustedRandomAccess specialization in ArrayChunks
 #[bench]
 fn bench_trusted_random_access_chunks(b: &mut Bencher) {

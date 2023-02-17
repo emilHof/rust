@@ -5,6 +5,9 @@
 #![feature(trusted_random_access)]
 #![feature(iter_array_chunks)]
 #![feature(iter_next_chunk)]
+#![feature(prefix_to_buffer)]
+#![feature(maybe_uninit_uninit_array)]
+#![feature(maybe_uninit_array_assume_init)]
 
 extern crate test;
 
