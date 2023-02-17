@@ -904,6 +904,66 @@ impl<T> Drop for Guard<'_, T> {
     }
 }
 
+/// This Guard is returned when the array it holds is not fully initialized.
+/// It ensures that the initialized contents are dropped after the return but
+/// allows `mem::forget` workaround if necessary.
+#[unstable(feature = "prefix_to_buffer", issue = "none")]
+#[allow(dead_code, missing_docs, missing_debug_implementations)]
+pub struct PartInitDropGuard<'a, T> {
+    initialized: usize,
+    array: &'a mut [MaybeUninit<T>],
+}
+
+impl<'a, T> PartInitDropGuard<'a, T> {
+    #[unstable(feature = "prefix_to_buffer", issue = "none")]
+    #[allow(dead_code, missing_docs, missing_debug_implementations)]
+    pub unsafe fn forget(&mut self) {
+        self.initialized = 0;
+    }
+
+    #[unstable(feature = "prefix_to_buffer", issue = "none")]
+    #[allow(dead_code, missing_docs, missing_debug_implementations)]
+    pub fn initialized(&self) -> usize {
+        self.initialized
+    }
+}
+
+#[unstable(feature = "prefix_to_buffer", issue = "none")]
+#[allow(dead_code, missing_docs, missing_debug_implementations)]
+impl<'a, T> Drop for PartInitDropGuard<'a, T> {
+    fn drop(&mut self) {
+        debug_assert!(self.initialized <= self.array.len());
+
+        // SAFETY: this slice will contain only initialized objects.
+        unsafe {
+            crate::ptr::drop_in_place(MaybeUninit::slice_assume_init_mut(
+                self.array.get_unchecked_mut(..self.initialized),
+            ));
+        }
+    }
+}
+
+/// Write's `N` items from `iter` into buffer.
+#[inline]
+pub(crate) fn write_prefix_to_buffer<'a, T>(
+    iter: &mut impl Iterator<Item = T>,
+    array: &'a mut [MaybeUninit<T>],
+) -> PartInitDropGuard<'a, T> {
+    let r = iter_next_chunk_erased(array, iter);
+    match r {
+        Ok(()) => {
+            // SAFETY: All elements of `array` were populated.
+            PartInitDropGuard { initialized: array.len(), array }
+        }
+        Err(initialized) => {
+            // SAFETY: Only the first `initialized` elements were populated
+            // Return a guard that ensures these initialized elements are dropped if
+            // the user does not explicitly opt into keeping them.
+            PartInitDropGuard { initialized, array }
+        }
+    }
+}
+
 /// Pulls `N` items from `iter` and returns them as an array. If the iterator
 /// yields fewer than `N` items, `Err` is returned containing an iterator over
 /// the already yielded items.
