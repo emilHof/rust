@@ -150,6 +150,19 @@ pub trait Iterator {
         array::iter_next_chunk(self)
     }
 
+    #[inline]
+    #[allow(dead_code, missing_docs, missing_debug_implementations)]
+    #[unstable(feature = "prefix_to_buffer", issue = "none")]
+    fn write_prefix_to_buffer<'a>(
+        &mut self,
+        array: &'a mut [crate::mem::MaybeUninit<Self::Item>],
+    ) -> array::PartInitDropGuard<'a, Self::Item>
+    where
+        Self: Sized,
+    {
+        array::write_prefix_to_buffer(self, array)
+    }
+
     /// Returns the bounds on the remaining length of the iterator.
     ///
     /// Specifically, `size_hint()` returns a tuple where the first element
