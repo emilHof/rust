@@ -68,16 +68,27 @@ where
         R: Try<Output = B>,
     {
         let mut acc = init;
-        loop {
-            match self.iter.next_chunk() {
-                Ok(chunk) => acc = f(acc, chunk)?,
-                Err(remainder) => {
-                    // Make sure to not override `self.remainder` with an empty array
-                    // when `next` is called after `ArrayChunks` exhaustion.
-                    self.remainder.get_or_insert(remainder);
 
-                    break try { acc };
-                }
+        loop {
+            let mut chunk = core::mem::MaybeUninit::uninit_array::<N>();
+
+            let mut guard = self.iter.write_prefix_to_buffer(&mut chunk);
+
+            let initialized = guard.initialized();
+
+            unsafe {
+                guard.forget();
+                drop(guard);
+            }
+
+            if initialized == N {
+                acc = f(acc, unsafe { core::mem::MaybeUninit::array_assume_init(chunk) })?;
+            } else {
+                self.remainder.get_or_insert(unsafe {
+                    array::IntoIter::new_unchecked(chunk, 0..initialized)
+                });
+
+                break try { acc };
             }
         }
     }
