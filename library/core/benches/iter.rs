@@ -421,8 +421,8 @@ fn bench_copied_chunks(b: &mut Bencher) {
 
 /// Exercises the iter::Copied specialization for slice::Iter
 #[bench]
-fn bench_copied_array_chunk_fold(b: &mut Bencher) {
-    let v = vec![1u8; 1024];
+fn bench_array_chunks_fold(b: &mut Bencher) {
+    let v = vec![1u8; 4096];
 
     b.iter(|| {
         let iter = black_box(&v).iter().copied().array_chunks::<{ mem::size_of::<u64>() }>();
