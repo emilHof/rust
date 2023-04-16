@@ -405,7 +405,7 @@ fn bench_trusted_random_access_adapters(b: &mut Bencher) {
 /// Exercises the iter::Copied specialization for slice::Iter
 #[bench]
 fn bench_copied_chunks(b: &mut Bencher) {
-    let v = vec![1u8; 1024];
+    let v = vec![1u8; 4096];
 
     b.iter(|| {
         let mut iter = black_box(&v).iter().copied();
@@ -437,7 +437,7 @@ fn bench_array_chunks_fold(b: &mut Bencher) {
 /// Exercises the TrustedRandomAccess specialization in ArrayChunks
 #[bench]
 fn bench_trusted_random_access_chunks(b: &mut Bencher) {
-    let v = vec![1u8; 1024];
+    let v = vec![1u8; 4096];
 
     b.iter(|| {
         black_box(&v)
